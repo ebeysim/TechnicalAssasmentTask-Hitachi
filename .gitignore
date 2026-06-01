@@ -1,0 +1,13 @@
+# Visual Studio temporary files and cache
+.vs/
+*.suo
+*.user
+*.sln.docstates
+
+# Build outputs (Compiled binaries)
+bin/
+obj/
+
+# OS generated files
+.DS_Store
+Thumbs.db
