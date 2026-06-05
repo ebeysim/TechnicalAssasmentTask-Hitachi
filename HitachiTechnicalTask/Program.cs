@@ -52,14 +52,12 @@ namespace HitachiTechnicalTask
         {
             string upperInput = input.Trim().ToUpper();
 
-            // 1. Check Astronaut Limit: If we already have 3, don't allow any more 'S' tokens
             if (upperInput.StartsWith("S") && astCounter >= MAX_ASTRONAUTS)
             {
                 return false;
        
             }
 
-            // 2. Check Space Station Limit: Only 1 'F' allowed on the entire map
             if (upperInput == "F" && isStationAdded)
             {
                 return false;
@@ -69,8 +67,6 @@ namespace HitachiTechnicalTask
             {
                 return false;
             }
-
-            // If it passed every single guard clause above, the input is perfectly valid!
             return true;
         }
 
