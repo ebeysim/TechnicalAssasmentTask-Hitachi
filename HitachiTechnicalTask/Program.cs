@@ -1,4 +1,7 @@
-﻿namespace HitachiTechnicalTask
+﻿using Microsoft.VisualBasic.FileIO;
+using System.Reflection;
+
+namespace HitachiTechnicalTask
 {
     internal class Program
     {
@@ -209,7 +212,7 @@
             }
             public string[,] Grid { get; set; }
             public Position SpaceStationLocation { get; set; } = new Position(0, 0);
-            public List<Astronaut> Astronauts { get; set; } = new List<Astronaut>();
+            public List<Astronaut> Astronauts { get; set; }
 
             public CosmicMap()
             {
@@ -226,7 +229,7 @@
 
             public void CreateGrid()
             {
-
+                Astronauts = new List<Astronaut>();
                 int astronautCounter = 0;
                 bool isStationAdded = false;
                 
@@ -470,10 +473,12 @@
                             {
                                 ms.ExecuteMission(map);
                                 ms.PrintReport(map);
+
+
                             }
                             break;
                         default:
-                            Console.WriteLine("Not an valid option try again! Pick from the available options in the menu.\n");
+                            Console.WriteLine("Not a valid option try again! Pick from the available options in the menu.\n");
                             break;
                     }
                 }
