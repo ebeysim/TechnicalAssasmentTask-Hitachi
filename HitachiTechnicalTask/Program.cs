@@ -1,13 +1,13 @@
-﻿using System.ComponentModel;
-using System.Diagnostics.Metrics;
-using System.Reflection;
-using System.Runtime.CompilerServices;
-using static System.Runtime.InteropServices.JavaScript.JSType;
-
-namespace HitachiTechnicalTask
+﻿namespace HitachiTechnicalTask
 {
     internal class Program
     {
+        const int MAX_SIZE = 100;
+        const int MIN_SIZE = 2;
+        const int MAX_ASTRONAUTS = 3;
+        const int MIN_ASTRONAUTS = 1;
+        const double ASTEROID_PROBABILITY = 0.2;
+
         public record Position(int X, int Y);
 
         interface IPathfindingStrategy
@@ -15,13 +15,11 @@ namespace HitachiTechnicalTask
             List<Position> FindPath(CosmicMap map, Position start, Position end);
         }
 
-        static bool IsInValidRange(int value, int min, int max)
-        {
-            return value >= min && value <= max;
-        }
+        static bool IsInValidRange(int value, int min, int max){return value >= min && value <= max;}
+
         static (int rows, int cols, int astronauts) GetAutoGenerationParameters(bool requireAstronauts)
         {
-            int rows, cols, astronauts = 1; // Default to 1 if not required
+            int rows, cols, astronauts = 1;
 
             Console.Write("Enter number of rows (2-100): ");
             while (!int.TryParse(Console.ReadLine(), out rows) || !IsInValidRange(rows, 2, 100))
@@ -37,10 +35,10 @@ namespace HitachiTechnicalTask
 
             if (requireAstronauts)
             {
-                Console.Write("Enter number of astronauts (1-3): ");
-                while (!int.TryParse(Console.ReadLine(), out astronauts) || !IsInValidRange(astronauts, 1, 3))
+                Console.Write("Enter number of astronauts (" + MIN_ASTRONAUTS + "-" + MAX_ASTRONAUTS + "): ");
+                while (!int.TryParse(Console.ReadLine(), out astronauts) || !IsInValidRange(astronauts, MIN_ASTRONAUTS, MAX_ASTRONAUTS))
                 {
-                    Console.Write("Invalid range. Enter astronauts (1-3): ");
+                    Console.Write("Invalid range. Enter astronauts (" + MIN_ASTRONAUTS + "-" + MAX_ASTRONAUTS + "): ");
                 }
             }
 
@@ -52,9 +50,10 @@ namespace HitachiTechnicalTask
             string upperInput = input.Trim().ToUpper();
 
             // 1. Check Astronaut Limit: If we already have 3, don't allow any more 'S' tokens
-            if (upperInput.StartsWith("S") && astCounter >= 3)
+            if (upperInput.StartsWith("S") && astCounter >= MAX_ASTRONAUTS)
             {
                 return false;
+       
             }
 
             // 2. Check Space Station Limit: Only 1 'F' allowed on the entire map
@@ -72,8 +71,32 @@ namespace HitachiTechnicalTask
             return true;
         }
 
+        static void PrintMatrix(string[,] matrix)
+        {
+            for (int i = 0; i < matrix.GetLength(0); i++)
+            {
+                for (int j = 0; j < matrix.GetLength(1); j++)
+                {
+                    Console.Write(matrix[i, j] + " ");
+                }
+                Console.WriteLine();
+            }
+        }
+
+        static void ShowMenu()
+        {
+            Console.WriteLine("----------Space Station----------");
+            Console.WriteLine("1. Create map");
+            Console.WriteLine("2. Auto-generate map");
+            Console.WriteLine("3. Show map");
+            Console.WriteLine("4. Find shortest path");
+            Console.WriteLine("0. Exit");
+        }
+
         class BFSPathfindingStrategy : IPathfindingStrategy
         {
+            private bool IsWalkable(string cell) => cell != "X" && !cell.StartsWith("S");
+            
             public List<Position> FindPath(CosmicMap map, Position start, Position end)
             {
                
@@ -95,6 +118,7 @@ namespace HitachiTechnicalTask
                         {
                             path.Add(step);
                             step = cameFrom[step];
+                            
                         }
                         path.Add(start);
                         path.Reverse();
@@ -113,16 +137,17 @@ namespace HitachiTechnicalTask
                     {
                         if (neighbor.X >= 0 && neighbor.X < map.Rows && neighbor.Y >= 0 && neighbor.Y < map.Columns) // Check bounds
                         {
-                            if (!visited[neighbor.X, neighbor.Y] && matrix[neighbor.X, neighbor.Y] != "X" && !matrix[neighbor.X, neighbor.Y].StartsWith("S")) // Check if not visited and not an asteroid
+                            if (!visited[neighbor.X, neighbor.Y] && IsWalkable(matrix[neighbor.X, neighbor.Y])) // Check if not visited and not an asteroid or another astronaut
                             {
-                                queue.Enqueue(neighbor);
+                                queue.Enqueue(neighbor); 
                                 visited[neighbor.X, neighbor.Y] = true;
                                 cameFrom[neighbor] = current; // Track the path
                             }
                         }
                     }
                 }
-                return new List<Position>(); // Return null if no path found
+               
+                return new List<Position>();
             }
             
         }
@@ -132,9 +157,9 @@ namespace HitachiTechnicalTask
             private string _id;
             public string Id { get { return _id; }
                 set {
-                    if(value != "S1" && value!="S2" && value!= "S3")
+                    if (!new[] { "S1", "S2", "S3" }.Contains(value))
                     {
-                        throw new ArgumentException(nameof(value), "Astronout id must be one of the folowing: S1, S2, S3");
+                        throw new ArgumentException(nameof(value), "Astronaut id must be one of the following: S1, S2, S3");
                     }
                     _id = value;
                 }
@@ -154,7 +179,6 @@ namespace HitachiTechnicalTask
 
         }
 
-
         class CosmicMap
         {
             private int _rows;
@@ -163,24 +187,24 @@ namespace HitachiTechnicalTask
                 get { return _rows; }
                 set
                 {
-                    if (!IsInValidRange(value, 2, 100))
+                    if (!IsInValidRange(value, MIN_SIZE, MAX_SIZE))
                     {
-                        throw new ArgumentException(nameof(value), "Rows must be between 2 and 100");
+                        throw new ArgumentException(nameof(value), $"Rows must be between {MIN_SIZE} and {MAX_SIZE}");
                     }
                     _rows = value;
                 }
             }
-            private int _colums;
+            private int _columns;
             public int Columns
             {
-                get { return _colums; }
+                get { return _columns; }
                 set
                 {
-                    if (!IsInValidRange(value, 2, 100))
+                    if (!IsInValidRange(value, MIN_SIZE, MAX_SIZE))
                     {
-                        throw new ArgumentException(nameof(value), "Columns must be between 2 and 100");
+                        throw new ArgumentException(nameof(value), $"Columns must be between {MIN_SIZE} and {MAX_SIZE}");
                     }
-                    _colums = value;
+                    _columns = value;
                 }
             }
             public string[,] Grid { get; set; }
@@ -211,13 +235,13 @@ namespace HitachiTechnicalTask
                     bool isRowValid = true;
                     bool rowHasStation = false;
 
-                    Console.WriteLine($"Enter line {i + 1} (comma-separated). You can add S for astronauts ({3 - astronautCounter} left), X for asteroids, and F for the space station:");
+                    Console.WriteLine($"Enter line {i + 1} (comma-separated). You can add S for astronauts ({MAX_ASTRONAUTS - astronautCounter} left), X for asteroids, and F for the space station:");
                     string? lineInput = Console.ReadLine();
 
                     if (string.IsNullOrWhiteSpace(lineInput))
                     {
                         Console.WriteLine("Line cannot be empty. Please retry this line.");
-                        i--; // Decrement i so the loop stays on the exact same row index
+                        i--;
                         continue;
                     }
 
@@ -230,7 +254,7 @@ namespace HitachiTechnicalTask
                         continue;
                     }
 
-                    for(int j = 0; j < Columns; j++)
+                    for (int j = 0; j < Columns; j++)
                     {
                         if (!IsValidInput(inputs[j], astronautCounter, isStationAdded))
                         {
@@ -251,7 +275,7 @@ namespace HitachiTechnicalTask
                         }
                     }
 
-                    if(!isRowValid)
+                    if (!isRowValid)
                     {
                         i--;
                         continue;
@@ -264,6 +288,7 @@ namespace HitachiTechnicalTask
                         if (upperToken.StartsWith("S"))
                         {
                             astronautCounter++;
+                            upperToken = "S" + astronautCounter;
                             Astronauts.Add(new Astronaut(upperToken, new Position(i, j)));
                         }
 
@@ -302,7 +327,7 @@ namespace HitachiTechnicalTask
                     Position pos = new(randomRow, randomCol);
                     if(astronautCoords.Contains(pos))
                     {
-                        i--; // If we randomly generated a duplicate coordinate, try again for this astronaut
+                        i--;
                         continue;
                     }
                     astronautCoords[i] = pos;
@@ -314,14 +339,15 @@ namespace HitachiTechnicalTask
                     int randomRow = rand.Next(0, rows);
                     int randomCol = rand.Next(0, columns);
                     Position pos = new(randomRow, randomCol);
-                    if (astronautCoords.Contains(pos))
+                    if (!astronautCoords.Contains(pos))
                     {
-                        continue; // If we randomly generated a coordinate that already has an astronaut, try again
-                    }
-                    SpaceStationLocation = pos;
-                    isStationAdded = true;
+                        SpaceStationLocation = pos;
+                        isStationAdded = true;
+                        break;
+                    }   
                 }
 
+                
                 for (int i = 0; i < Rows; i++) {
                     for (int j = 0; j < Columns; j++) {
                         Position pos = new(i, j);
@@ -335,30 +361,13 @@ namespace HitachiTechnicalTask
                         }
                         else
                         {
-                            Grid[i, j] = rand.NextDouble() < 0.2 ? "X" : "0"; ; // Open space
+                            Grid[i, j] = rand.NextDouble() < ASTEROID_PROBABILITY ? "X" : "0"; ; // Open space
                         }
                     }
                 }
-
-                // Implement logic to auto-generate a valid grid with astronauts, asteroids, and a space station. This can be used for testing purposes.
-                
             }
 
-            public void PrintGrid()
-            {
-                for (int i = 0; i < Rows; i++)
-                {
-                    for (int j = 0; j < Columns; j++)
-                    {
-                        Console.Write(Grid[i, j] + " ");
-                    }
-                    Console.WriteLine();
-                }
-                Console.WriteLine();
-            }
-
-
-
+            public void PrintGrid() { PrintMatrix(Grid);}
         }
 
         class MissionControl
@@ -379,27 +388,14 @@ namespace HitachiTechnicalTask
                     {
                         astronaut.IsLost = true;
                     }
-                    //Console.WriteLine(astronaut.PathCost);
-                    //Console.WriteLine(astronaut.IsLost);
-                }
-               
-
-                
+                }      
                 
             }
 
             public void PrintReport(CosmicMap map)
             {
-                var astronauts = map.Astronauts.OrderBy(a => a.IsLost).ThenBy(a => a.PathCost).ToList();
-                string[,] grid = new string[map.Rows, map.Columns];
-
-                for(int i =0; i<map.Rows; i++)
-                {
-                    for(int j =0; j<map.Columns; j++)
-                    {
-                        grid[i, j] = map.Grid[i, j];
-                    }
-                }
+                var astronauts = map.Astronauts.OrderBy(a => a.IsLost).OrderBy(a => a.PathCost).ToList();
+                
                 foreach (var astronaut in astronauts)
                 {
 
@@ -408,20 +404,20 @@ namespace HitachiTechnicalTask
                         Console.WriteLine($"Mission failed — Astronaut {astronaut.Id} lost in space!\n");
                         continue;
                     }
-                    Console.WriteLine($"Astronaut {astronaut.Id} - Shortest path:  {(astronaut.PathCost + " steps")}");
-                    for(int i = 0; i<map.Rows; i++)
+                    string[,] grid = new string[map.Rows, map.Columns];
+
+                    for (int i = 0; i < map.Rows; i++)
                     {
-                        for(int j = 0; j<map.Columns; j++)
+                        for (int j = 0; j < map.Columns; j++)
                         {
                             if (astronaut.Path.Contains(new Position(i, j)) && map.Grid[i, j] != "F" && !map.Grid[i, j].StartsWith("S"))
                             {
                                 grid[i, j] = "*";
-                            }
-                            Console.Write(grid[i, j] + " ");
+                            } else grid[i, j] = map.Grid[i, j];
                         }
-                        Console.WriteLine();
                     }
-                    Console.WriteLine();
+                    Console.WriteLine($"Astronaut {astronaut.Id} - Shortest path:  {(astronaut.PathCost + " steps")}");
+                    PrintMatrix(grid);
 
                 }
             }
@@ -429,18 +425,12 @@ namespace HitachiTechnicalTask
         static void Main(string[] args)
         {
             string option;
+            int rows, cols, astronauts = 0;
             MissionControl ms = new MissionControl(new BFSPathfindingStrategy());
-            CosmicMap map=new CosmicMap();
-
+            CosmicMap map = new CosmicMap();
             do
             {
-                Console.WriteLine("----------Space Station----------");
-                Console.WriteLine("1. Create map");
-                Console.WriteLine("2. Auto-generate map");
-                Console.WriteLine("3. Show map");
-                Console.WriteLine("4. Find shortest path");
-                Console.WriteLine("0. Exit");
-
+                ShowMenu();
                 Console.Write("\nEnter an option: ");
                 option = Console.ReadLine();
                 try
@@ -448,20 +438,21 @@ namespace HitachiTechnicalTask
                     switch (option)
                     {
                         case "1":
-                            var (rows, cols, _) = GetAutoGenerationParameters(false);
+                            (rows, cols, _) = GetAutoGenerationParameters(false);
                             map = new CosmicMap(rows, cols);
                             map.CreateGrid();
-                            Console.WriteLine("Map created successfully!\n");   
+                            Console.WriteLine("Map created successfully!\n");
                             break;
                         case "0":
                             break;
                         case "2":
-                            var(rowsA, colsA, astronauts) = GetAutoGenerationParameters(true);
-                            map.AutoGenerateGrid(rowsA,colsA,astronauts);
+                            (rows, cols, astronauts) = GetAutoGenerationParameters(true);
+                            map.AutoGenerateGrid(rows, cols, astronauts);
                             Console.WriteLine("Map auto-generated successfully!\n");
                             break;
                         case "3":
-                            if(map.Grid == null)
+
+                            if (map.Grid == null)
                             {
                                 Console.WriteLine("No map found, please create or auto-generate a map first.\n");
                             }
@@ -471,21 +462,26 @@ namespace HitachiTechnicalTask
                             }
                             break;
                         case "4":
-                            ms.ExecuteMission(map);
-                            ms.PrintReport(map);
+                            if (map.Grid == null)
+                            {
+                                Console.WriteLine("No map found, please create or auto-generate a map first.\n");
+                            }
+                            else
+                            {
+                                ms.ExecuteMission(map);
+                                ms.PrintReport(map);
+                            }
                             break;
                         default:
-                            Console.WriteLine("Not an valid option try again!\n");
+                            Console.WriteLine("Not an valid option try again! Pick from the available options in the menu.\n");
                             break;
                     }
-
                 }
                 catch (Exception e)
                 {
-                    Console.WriteLine($"Error: {e.Message}");
+                    Console.WriteLine($"Error: {e.Message}. Please try again.");
                 }
             } while (option != "0");
-
         }
     }
 }
